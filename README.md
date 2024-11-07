@@ -1,19 +1,19 @@
-Badger
-======
+[![Actions Status](https://github.com/raku-community-modules/Badger/actions/workflows/linux.yml/badge.svg)](https://github.com/raku-community-modules/Badger/actions) [![Actions Status](https://github.com/raku-community-modules/Badger/actions/workflows/macos.yml/badge.svg)](https://github.com/raku-community-modules/Badger/actions) [![Actions Status](https://github.com/raku-community-modules/Badger/actions/workflows/windows.yml/badge.svg)](https://github.com/raku-community-modules/Badger/actions)
 
-Badger, not an ORM (a snake).
+NAME
+====
 
-### What's Badger?
+Badger - expose SQL queries as Raku subroutines
 
-Badger is a SQL library that allows you to invoke SQL snippets as function as
-if it was Raku code. This way you can keep writing your SQL queries by hand
-for performance and tweakability, and your tools still recognize the `.sql`
-files to help you work with them.
+WHAT'S BADGER?
+==============
 
-### What does a Badger SQL file look like?
+`Badger` is a SQL library that allows you to invoke SQL snippets as function as if it was Raku code. This way you can keep writing your SQL queries by hand for performance and tweakability, and your tools still recognize the `.sql` files to help you work with them.
 
-A badger-compatible SQL file is just a normal SQL file, with signature headers.
-These signatures are intended to look like Raku signatures.
+What does a Badger SQL file look like?
+--------------------------------------
+
+A badger-compatible SQL file is just a normal SQL file, with signature headers. These signatures are intended to look like Raku signatures.
 
 The most basic example:
 
@@ -22,7 +22,8 @@ The most basic example:
 SELECT;
 ```
 
-### How do I feed Badger my SQL?
+How do I feed Badger my SQL?
+----------------------------
 
 You have to pass the .sql file(s) to the `use Badger` statement:
 
@@ -36,29 +37,29 @@ This will generate this function Raku-side:
 sub my-query(Database $db --> Int) { ... }
 ```
 
-Which you can call just like any other Raku subs, by passing any object that
-has an interface similar to `DB::Pg` (for now at least) as the connection.
+Which you can call just like any other Raku subroutine, by passing any object that has an interface similar to `DB::Pg` (for now at least) as the connection.
 
 For parameters and return values, see below.
 
-## Parameters
+Parameters
+==========
 
-A Badger SQL sub can have arguments that you can use in the SQL body.
-Interpolation works for sigilled variables:
+A Badger SQL sub can have arguments that you can use in the SQL body. Interpolation works for sigilled variables:
 
 ```sql
 -- sub query-with-params($a, $b)
 SELECT $a + $b, @c
 ```
 
-This will generate a prepared query with `$a` and `$b` replaced `$1`, `$2`
-(or with `?`s depending on the RDBMS).
+This will generate a prepared query with `$a` and `$b` replaced `$1`, `$2` (or with `?`s depending on the RDBMS).
 
-### Parameter Sigils
+Parameter Sigils
+----------------
 
 The Raku allowed sigils are `$` and `@`. 
 
-### Parameter typing
+Parameter typing
+----------------
 
 You can put type annotations on the parameters:
 
@@ -67,14 +68,14 @@ You can put type annotations on the parameters:
 SELECT $x = ANY(@xs)
 ```
 
-If a parameter is typed, Badger will try to help you by inserting coercions in the generated SQL.
-This is what the executed SQL looks like:
+If a parameter is typed, Badger will try to help you by inserting coercions in the generated SQL. This is what the executed SQL looks like:
 
 ```sql
 SELECT ($1::int) = ANY(($2::int[]))
 ```
 
-### Named Parameters
+Named Parameters
+----------------
 
 Parameters can be named, just like in Raku:
 
@@ -85,7 +86,8 @@ SELECT $a + $b
 
 Just like in Raku, you can't have a positional parameter after a named one.
 
-### Mandatory Named Parameters 
+Mandatory Named Parameters 
+---------------------------
 
 Also just like in Raku, named parameters can be marked mandatory:
 
@@ -94,12 +96,13 @@ Also just like in Raku, named parameters can be marked mandatory:
 SELECT $a * 2
 ```
 
-## Return Sigils
+Return Sigils
+=============
 
-### `+` (default)
++ (default)
+-----------
 
-The default one -- in you don't specify a return sigil, you get this.
-Returns the number of affected rows (as an `Int`).
+The default one -- in you don't specify a return sigil, you get this. Returns the number of affected rows (as an `Int`).
 
 ```sql
 -- sub count-unnests(--> +)
@@ -110,7 +113,8 @@ UPDATE products
    WHERE price IS NULL
 ```
 
-### `$`
+$
+-
 
 Returns a single value. `Nil` is returned otherwise:
 
@@ -121,7 +125,8 @@ FROM users
 WHERE token = $token
 ```
 
-### Typed `$`
+Typed $
+-------
 
 Calls `.new` on the given type with all the data returned from the SQL query:
 
@@ -130,8 +135,7 @@ Calls `.new` on the given type with all the data returned from the SQL query:
 SELECT 1 AS id, 'steve' AS username
 ```
 
-You'll usually need to import type module that provides the type, by placing
-a `use` at the top of the SQL file:
+You'll usually need to import type module that provides the type, by placing a `use` at the top of the SQL file:
 
 ```sql
 -- use MyApp::Models;
@@ -144,10 +148,11 @@ class MyApp::Models::User {
 }
 ...
 my MyApp::Models::User $user = get-user(db, 1);
-# Result: `MyApp::Models::User.new(id => 1, :username<steve>);`
+# Result: MyApp::Models::User.new(id => 1, :username<steve>);
 ```
 
-### `%`
+%
+-
 
 Returns a hash.
 
@@ -156,14 +161,15 @@ Returns a hash.
 SELECT 'comment' as type, 'Hello world!' as txt
 ```
 
-```perl6
+```raku
 my %h = get-hash($db);
-# Result: `%(type => "comment", txt => "Hello world!")`
+# Result: %(type => "comment", txt => "Hello world!")
 ```
 
 If the database doesn't return anything, Badger gives you an empty hash back.
 
-### `@`
+@
+-
 
 Returns an array of hashes.
 
@@ -173,12 +179,13 @@ SELECT 'comment' as type, txt
 FROM unnest(array['Hello', 'world!']) txt
 ```
 
-```perl6
+```raku
 my @hashes = get-hashes($db);
-# Result: `%(type => "comment", txt => "Hello"), %(type => "comment", txt => "world!")`
+# Result: %(type => "comment", txt => "Hello"), %(type => "comment", txt => "world!")
 ```
 
-### Typed `@`
+Typed @
+-------
 
 Calls `.new` on the given type on each row of the data returned from the SQL query:
 
@@ -188,12 +195,34 @@ SELECT row_number() OVER () as id
      , unnest(ARRAY['a','b']) as value
 ```
 
-```perl6
+```raku
 class Datum {
   has Int $.id;
   has Str $.value;                                                                                                                                                    
 }
 ...
 my Datum @data = get-data($db);
-# Result: `Datum.new(id => 1, :value<a>), Datum.new(id => 2, :value<b>)`
+# Result: Datum.new(id => 1, :value<a>), Datum.new(id => 2, :value<b>)
 ```
+
+DESCRIPTION
+===========
+
+AUTHORS
+=======
+
+  * vedethiel
+
+  * Jonathan Worthington
+
+Source can be located at: https://github.com/raku-community-modules/Badger . Comments and Pull Requests are welcome.
+
+COPYRIGHT AND LICENSE
+=====================
+
+Copyright 2020 Edument AB
+
+Copyright 2024 The Raku Community
+
+This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+

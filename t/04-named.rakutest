@@ -1,5 +1,7 @@
 use Test;
 
+plan 15;
+
 my class TEMP-QUERY-CLASS {
     has $.last-query;
     has @.last-pos;
@@ -65,5 +67,4 @@ throws-like { EVAL "use Badger <t/sql/04/06-pos-after-named-FAIL.sql>" },
       Exception, message => "Missing required named parameters for SQL query query: a, b.";
 }
 
-
-done-testing;
+# vim: expandtab shiftwidth=4

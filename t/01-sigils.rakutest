@@ -1,5 +1,7 @@
 use Test;
 
+plan 25;
+
 sub make-query-class(Any:U $return-class) {
     my class TEMP-QUERY-CLASS {
         has @.last-params;
@@ -116,4 +118,4 @@ throws-like { EVAL "use Badger <t/sql/01/07-no-sigil-after-type-FAIL.sql>" },
     is $runner.last-params, ();
 }
 
-done-testing;
+# vim: expandtab shiftwidth=4

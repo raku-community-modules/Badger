@@ -196,7 +196,7 @@ my class FileActions {
     method sig($/) {
         make AST::Sig.new(
             :param($<param>>>.made),
-            :return($<return> ?? $<return>.made !! AST::Return::Count.new) # default to `+`
+            :return($<return> ?? $<return>.made !! AST::Return::Count.new) # default to +
         )
     }
 
@@ -291,7 +291,7 @@ multi sub build-return-class($name, AST::Return:D $return) {
     $return-class.^compose;
 }
 
-#| Automatically adds an annotation for the type in case we know it in advance
+# Automatically adds an annotation for the type in case we know it in advance
 sub type-to-ascription(AST::Param $param) {
     my $sql-type = do given $param.type {
         when Int { "int" }
@@ -313,8 +313,8 @@ my role SignatureOverload[$sig] {
   #}
 }
 
-#| Replaces `$a`, `$b`, ... with `$1` or `$2` in the SQL query.
-#| Uses C<type-to-ascription> to optionally ascribe them in the SQL.
+# Replaces $a, $b, ... with $1 or $2 in the SQL query.
+# Uses C<type-to-ascription> to optionally ascribe them in the SQL.
 sub interpolate-sql($module) {
     my @arg-names = $module.param.map({ .sigil ~ .name });
     $module.content.trim.subst(/<[$@%]> (<[- \w]>+)/, {
@@ -380,3 +380,266 @@ sub EXPORT(File $file) {
         return Map.new;
     }
 }
+
+=begin pod
+
+=head1 NAME
+
+Badger - expose SQL queries as Raku subroutines
+
+=head1 WHAT'S BADGER?
+
+C<Badger> is a SQL library that allows you to invoke SQL snippets as
+function as if it was Raku code. This way you can keep writing your
+SQL queries by hand for performance and tweakability, and your tools
+still recognize the C<.sql> files to help you work with them.
+
+=head2 What does a Badger SQL file look like?
+
+A badger-compatible SQL file is just a normal SQL file, with
+signature headers.  These signatures are intended to look like Raku
+signatures.
+
+The most basic example:
+
+=begin code :lang<sql>
+
+-- sub my-query()
+SELECT;
+
+=end code
+
+=head2 How do I feed Badger my SQL?
+
+You have to pass the .sql file(s) to the C<use Badger> statement:
+
+=begin code :lang<raku>
+
+use Badger <sql/my-query.sql>; # The file in the previous code block
+
+=end code
+
+This will generate this function Raku-side:
+
+=begin code :lang<raku>
+
+sub my-query(Database $db --> Int) { ... }
+
+=end code
+
+Which you can call just like any other Raku subroutine, by passing
+any object that has an interface similar to C<DB::Pg> (for now at
+least) as the connection.
+
+For parameters and return values, see below.
+
+=head1 Parameters
+
+A Badger SQL sub can have arguments that you can use in the SQL body.
+Interpolation works for sigilled variables:
+
+=begin code :lang<sql>
+
+-- sub query-with-params($a, $b)
+SELECT $a + $b, @c
+
+=end code
+
+This will generate a prepared query with C<$a> and C<$b> replaced C<$1>, C<$2>
+(or with C<?>s depending on the RDBMS).
+
+=head2 Parameter Sigils
+
+The Raku allowed sigils are C<$> and C<@>. 
+
+=head2 Parameter typing
+
+You can put type annotations on the parameters:
+
+=begin code :lang<sql>
+
+-- sub query-with-params(Int $x, Int @xs)
+SELECT $x = ANY(@xs)
+
+=end code
+
+If a parameter is typed, Badger will try to help you by inserting coercions in the generated SQL.
+This is what the executed SQL looks like:
+
+=begin code :lang<sql>
+
+SELECT ($1::int) = ANY(($2::int[]))
+
+=end code
+
+=head2 Named Parameters
+
+Parameters can be named, just like in Raku:
+
+=begin code :lang<sql>
+
+-- sub query-nameds(Int :$a, :$b)
+SELECT $a + $b
+
+=end code
+
+Just like in Raku, you can't have a positional parameter after a named one.
+
+=head2 Mandatory Named Parameters 
+
+Also just like in Raku, named parameters can be marked mandatory:
+
+=begin code :lang<sql>
+
+-- sub query-nameds(:$mandatory!)
+SELECT $a * 2
+
+=end code
+
+=head1 Return Sigils
+
+=head2 + (default)
+
+The default one -- in you don't specify a return sigil, you get this.
+Returns the number of affected rows (as an C<Int>).
+
+=begin code :lang<sql>
+
+-- sub count-unnests(--> +)
+-- ... or ...
+-- sub count-unnests()
+UPDATE products
+   SET price = 999
+   WHERE price IS NULL
+
+=end code
+
+=head2 $
+
+Returns a single value. C<Nil> is returned otherwise:
+
+=begin code :lang<sql>
+
+-- sub get-username(Str $token --> $)
+SELECT username
+FROM users
+WHERE token = $token
+
+=end code
+
+=head2 Typed $
+
+Calls C<.new> on the given type with all the data returned from the SQL query:
+
+=begin code :lang<sql>
+
+-- sub get-user(Int $id --> MyApp::Models::User)
+SELECT 1 AS id, 'steve' AS username
+
+=end code
+
+You'll usually need to import type module that provides the type, by placing
+a C<use> at the top of the SQL file:
+
+=begin code :lang<sql>
+
+-- use MyApp::Models;
+
+=end code
+
+=begin code :lang<raku>
+
+class MyApp::Models::User {
+  has Int $.id;
+  has Str $.username;
+}
+...
+my MyApp::Models::User $user = get-user(db, 1);
+# Result: MyApp::Models::User.new(id => 1, :username<steve>);
+
+=end code
+
+=head2 %
+
+Returns a hash.
+
+=begin code :lang<sql>
+
+-- sub get-hash(--> %)
+SELECT 'comment' as type, 'Hello world!' as txt
+
+=end code
+
+=begin code :lang<raku>
+
+my %h = get-hash($db);
+# Result: %(type => "comment", txt => "Hello world!")
+
+=end code
+
+If the database doesn't return anything, Badger gives you an empty hash back.
+
+=head2 @
+
+Returns an array of hashes.
+
+=begin code :lang<sql>
+
+-- sub get-hashes(--> @)
+SELECT 'comment' as type, txt
+FROM unnest(array['Hello', 'world!']) txt
+
+=end code
+
+=begin code :lang<raku>
+
+my @hashes = get-hashes($db);
+# Result: %(type => "comment", txt => "Hello"), %(type => "comment", txt => "world!")
+
+=end code
+
+=head2 Typed @
+
+Calls C<.new> on the given type on each row of the data returned from the SQL query:
+
+=begin code :lang<sql>
+
+-- sub get-data(--> Datum @)
+SELECT row_number() OVER () as id
+     , unnest(ARRAY['a','b']) as value
+
+=end code
+
+=begin code :lang<raku>
+
+class Datum {
+  has Int $.id;
+  has Str $.value;                                                                                                                                                    
+}
+...
+my Datum @data = get-data($db);
+# Result: Datum.new(id => 1, :value<a>), Datum.new(id => 2, :value<b>)
+
+=end code
+
+=head1 DESCRIPTION
+
+=head1 AUTHORS
+
+=item vedethiel
+=item Jonathan Worthington
+
+Source can be located at: https://github.com/raku-community-modules/Badger .
+Comments and Pull Requests are welcome.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2020 Edument AB
+
+Copyright 2024 The Raku Community
+
+This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+
+=end pod
+
+# vim: expandtab shiftwidth=4

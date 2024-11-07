@@ -1,5 +1,7 @@
 use Test;
 
+plan 5;
+
 my class TEMP-QUERY-CLASS {
     has $.last-query;
     method query(::?CLASS:D: $!last-query, *@) {
@@ -30,4 +32,4 @@ END
     is $runner.last-query, 'SELECT $1;';
 }
 
-done-testing;
+# vim: expandtab shiftwidth=4

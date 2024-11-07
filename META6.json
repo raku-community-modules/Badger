@@ -1,16 +1,24 @@
 {
-  "name": "Badger",
-  "description": "Expose SQL queries as Raku subs",
-  "version": "1.1.0",
-  "perl": "6.*",
-  "auth": "zef:jnthn",
-  "depends": [],
-  "build-depends": [],
-  "test-depends": [],
-  "provides": {
-    "Badger": "lib/Badger.pm6"
-  },
-  "resources": [],
+  "auth": "zef:raku-community-modules",
+  "build-depends": [
+  ],
+  "depends": [
+  ],
+  "description": "expose SQL queries as Raku subroutines",
   "license": "Artistic-2.0",
-  "source-url": "git://github.com/edumentab/badger.git"
+  "name": "Badger",
+  "perl": "6.*",
+  "provides": {
+    "Badger": "lib/Badger.rakumod"
+  },
+  "resources": [
+  ],
+  "source-url": "https://github.com/raku-community-modules/Badger.git",
+  "tags": [
+    "SQL",
+    "ORM"
+  ],
+  "test-depends": [
+  ],
+  "version": "1.1.0"
 }

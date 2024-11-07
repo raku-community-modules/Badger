@@ -1,5 +1,7 @@
 use Test;
 
+plan 10;
+
 {
     throws-like { EVAL "use Badger <t/sql/02/01-double-param-untyped-untyped-FAIL.sql>" },
             Exception, message => /'Duplicate parameter name: a'/;
@@ -69,4 +71,4 @@ my class TEMP-QUERY-CLASS {
     is $runner.last-query, 'SELECT ($1::int) + ($1::int);';
 }
 
-done-testing;
+# vim: expandtab shiftwidth=4
