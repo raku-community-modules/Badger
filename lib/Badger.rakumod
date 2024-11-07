@@ -498,7 +498,7 @@ SELECT $a * 2
 
 =head1 Return Sigils
 
-=head2 + (default)
+=head2 default: +
 
 The default one -- in you don't specify a return sigil, you get this.
 Returns the number of affected rows (as an C<Int>).

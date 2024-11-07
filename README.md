@@ -99,8 +99,8 @@ SELECT $a * 2
 Return Sigils
 =============
 
-+ (default)
------------
+default: +
+----------
 
 The default one -- in you don't specify a return sigil, you get this. Returns the number of affected rows (as an `Int`).
 

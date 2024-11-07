@@ -1,4 +1,6 @@
 Revision history for Badger
 
 {{$NEXT}}
+
+1.2.0  2024-11-07T14:42:56+01:00
     - Initial version as a Raku Community Module
